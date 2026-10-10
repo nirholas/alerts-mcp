@@ -1,0 +1,20 @@
+# @three-ws/alerts-mcp
+
+> Manage your three.ws pump.fun alert rules from any AI agent — create, update, and delete monitoring rules with in-app, webhook, and Telegram delivery, and read the fired-alert history. Account-scoped over the live API.
+
+@three-ws/alerts-mcp is a Model Context Protocol server from three.ws. Install: `npx -y @three-ws/alerts-mcp`.
+
+## Docs
+
+- [README](https://github.com/nirholas/alerts-mcp/blob/main/README.md): install, configuration, full reference
+- [Documentation site](https://nirholas.github.io/alerts-mcp/): the README as a web page
+- [Full text for LLMs](https://nirholas.github.io/alerts-mcp/llms-full.txt): README inlined
+- [AGENTS.md](https://github.com/nirholas/alerts-mcp/blob/main/AGENTS.md): guidance for coding agents
+
+## Project
+
+- [Source](https://github.com/nirholas/alerts-mcp)
+- [npm](https://www.npmjs.com/package/@three-ws/alerts-mcp)
+- [three.ws](https://three.ws): the platform this is part of
+- [Issues](https://github.com/nirholas/alerts-mcp/issues)
+- [MCP Registry](https://registry.modelcontextprotocol.io/?q=io.github.nirholas%2Falerts-mcp)

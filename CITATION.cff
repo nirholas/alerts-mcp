@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: "@three-ws/alerts-mcp"
+abstract: "Manage your three.ws pump.fun alert rules from any AI agent — create, update, and delete monitoring rules with in-app, webhook, and Telegram delivery, and read the fired-alert history. Account-scoped over the live API."
+version: 0.1.3
+license: Apache-2.0
+repository-code: "https://github.com/nirholas/alerts-mcp"
+url: "https://three.ws"
+authors:
+  - name: three.ws
+    website: "https://three.ws"
