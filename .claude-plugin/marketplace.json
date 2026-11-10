@@ -1,0 +1,21 @@
+{
+  "name": "alerts-mcp",
+  "owner": {
+    "name": "nirholas"
+  },
+  "description": "MCP server to create, update, list and delete three.ws pump.fun alert rules and read fired-alert history.",
+  "plugins": [
+    {
+      "name": "alerts-mcp",
+      "source": "./plugins/alerts-mcp",
+      "description": "MCP server to create, update, list and delete three.ws pump.fun alert rules and read fired-alert history.",
+      "category": "automation",
+      "tags": [
+        "mcp",
+        "alerts",
+        "monitoring",
+        "webhooks"
+      ]
+    }
+  ]
+}
