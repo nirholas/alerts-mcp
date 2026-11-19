@@ -14,9 +14,40 @@ export function env(key, fallback) {
 	return v !== undefined && String(v).trim() !== '' ? String(v).trim() : fallback;
 }
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/**
+ * Validate THREE_WS_BASE. Every account-scoped call sends the session cookie to
+ * this origin, so it must be https; plain http is accepted only for a loopback
+ * host (local development against a self-hosted API).
+ * @param {string} raw
+ * @returns {string} the base URL without a trailing slash
+ */
+export function parseBaseUrl(raw) {
+	let url;
+	try {
+		url = new URL(raw);
+	} catch {
+		throw Object.assign(new Error(`THREE_WS_BASE must be an absolute URL (got "${raw}")`), { code: 'bad_config' });
+	}
+	const loopback = LOOPBACK_HOSTS.has(url.hostname);
+	if (url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback)) {
+		throw Object.assign(
+			new Error(`THREE_WS_BASE must use https (http is allowed only for localhost); got "${raw}"`),
+			{ code: 'bad_config' },
+		);
+	}
+	if (url.username || url.password || url.search || url.hash) {
+		throw Object.assign(new Error('THREE_WS_BASE must not carry credentials, a query string or a fragment'), {
+			code: 'bad_config',
+		});
+	}
+	return url.href.replace(/\/+$/, '');
+}
+
 // Base URL of the three.ws API. Override only when self-hosting or pointing at a
 // preview deployment.
-export const THREE_WS_BASE = env('THREE_WS_BASE', 'https://three.ws').replace(/\/+$/, '');
+export const THREE_WS_BASE = parseBaseUrl(env('THREE_WS_BASE', 'https://three.ws'));
 
 // Per-request timeout (ms). These are live reads/writes against the alert-rules
 // store and the notification feed — generous enough to ride out a cold edge.
@@ -39,6 +70,16 @@ export const HTTP_TIMEOUT_MS = (() => {
 // buildServer() in the offline tests — never requires it; tools throw a clear
 // `no_session` at call time when it is absent. Treat like a password.
 export const THREE_WS_SESSION = env('THREE_WS_SESSION', '');
+
+// RFC 6265 cookie-octet: printable ASCII except space, DQUOTE, comma, semicolon
+// and backslash. Anything else in the session value would let it smuggle extra
+// cookies (or break the header), so it is rejected before any request is sent.
+const COOKIE_VALUE_RE = /^[\x21\x23-\x2B\x2D-\x3A\x3C-\x5B\x5D-\x7E]+$/;
+
+/** @param {string} value */
+export function isValidSessionToken(value) {
+	return COOKIE_VALUE_RE.test(value);
+}
 
 // Identifies this client to the API in request logs.
 export const USER_AGENT = '@three-ws/alerts-mcp';
