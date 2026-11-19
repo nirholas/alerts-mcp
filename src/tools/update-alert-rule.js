@@ -10,10 +10,11 @@
 import { z } from 'zod';
 
 import { apiRequest } from '../lib/api.js';
+import {
+	agentId, cooldownSeconds, dropUndefined, kind, label, mint, ruleId, telegramChat, threshold, webhookUrl,
+} from '../lib/schemas.js';
 import { shapeRule } from '../lib/shapes.js';
-
-const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-const dropUndefined = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+import { assertPublicWebhookUrl } from '../lib/webhook-url.js';
 
 export const def = {
 	name: 'update_alert_rule',
@@ -31,55 +32,40 @@ export const def = {
 		'Returns the updated rule. Requires THREE_WS_SESSION. ' +
 		'Use this to pause, retune, or re-route an existing rule; unlike delete_alert_rule it keeps the rule and its history.',
 	inputSchema: {
-		rule_id: z.string().uuid().describe('Id of the rule to update (from list_alert_rules).'),
-		kind: z
-			.enum(['graduation', 'price_above', 'price_below', 'whale_buy', 'new_mint'])
+		rule_id: ruleId().describe('Id of the rule to update (from list_alert_rules).'),
+		kind: kind()
 			.optional()
 			.describe('Change the event kind. The rule is re-validated against it and incompatible fields are cleared.'),
-		target_mint: z
-			.string()
-			.regex(BASE58_RE, 'must be a base58 Solana mint address')
+		target_mint: mint()
 			.nullable()
 			.optional()
 			.describe('Coin mint to watch, or null to clear. Required by price/whale kinds; forbidden for new_mint.'),
-		target_agent: z
-			.string()
-			.uuid()
+		target_agent: agentId()
 			.nullable()
 			.optional()
 			.describe('three.ws agent UUID to watch, or null to clear. Required by new_mint; forbidden for mint-targeted kinds.'),
-		threshold: z
-			.number()
-			.positive()
+		threshold: threshold()
 			.nullable()
 			.optional()
 			.describe('USD market cap (price kinds) or SOL buy size (whale_buy), or null to clear.'),
 		deliver_in_app: z.boolean().optional().describe('Toggle in-app delivery.'),
-		webhook_url: z
-			.string()
-			.url()
-			.refine((u) => /^https:\/\//i.test(u), 'must be https')
+		webhook_url: webhookUrl()
 			.nullable()
 			.optional()
-			.describe('HTTPS endpoint for signed alert events, or null to remove the webhook (and its secret).'),
-		telegram_chat: z
-			.string()
-			.regex(/^(-?\d{1,32}|@[a-zA-Z0-9_]{4,64})$/, 'numeric chat id or @username')
+			.describe('Public HTTPS endpoint for signed alert events (private, loopback and link-local hosts are rejected), or null to remove the webhook (and its secret).'),
+		telegram_chat: telegramChat()
 			.nullable()
 			.optional()
 			.describe('Telegram numeric chat id or @username, or null to remove.'),
-		cooldown_seconds: z
-			.number()
-			.int()
-			.min(5)
-			.max(86_400)
+		cooldown_seconds: cooldownSeconds()
 			.optional()
 			.describe('Minimum seconds between fires (5–86400).'),
 		enabled: z.boolean().optional().describe('Enable or pause the rule.'),
-		label: z.string().max(80).nullable().optional().describe('Human label, or null to fall back to the derived default.'),
+		label: label().nullable().optional().describe('Human label, or null to fall back to the derived default.'),
 	},
 	async handler(args) {
 		const { rule_id, ...rest } = args;
+		if (rest.webhook_url) await assertPublicWebhookUrl(rest.webhook_url);
 		const body = dropUndefined(rest);
 		const data = await apiRequest(`/api/alerts/rules/${encodeURIComponent(rule_id)}`, {
 			method: 'PATCH',

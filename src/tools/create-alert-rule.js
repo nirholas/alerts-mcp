@@ -9,10 +9,11 @@
 import { z } from 'zod';
 
 import { apiRequest } from '../lib/api.js';
+import {
+	agentId, cooldownSeconds, dropUndefined, kind, label, mint, telegramChat, threshold, webhookUrl,
+} from '../lib/schemas.js';
 import { shapeRule } from '../lib/shapes.js';
-
-const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
-const dropUndefined = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+import { assertPublicWebhookUrl } from '../lib/webhook-url.js';
 
 export const def = {
 	name: 'create_alert_rule',
@@ -31,47 +32,32 @@ export const def = {
 		'input; three.ws promotes only $THREE. Returns the created rule. Requires THREE_WS_SESSION. ' +
 		'Use this to have three.ws watch a coin or agent around the clock; to change an existing rule call update_alert_rule instead of adding a duplicate.',
 	inputSchema: {
-		kind: z
-			.enum(['graduation', 'price_above', 'price_below', 'whale_buy', 'new_mint'])
+		kind: kind()
 			.describe('Event to watch: graduation | price_above | price_below | whale_buy | new_mint.'),
-		target_mint: z
-			.string()
-			.regex(BASE58_RE, 'must be a base58 Solana mint address')
+		target_mint: mint()
 			.optional()
 			.describe('Coin mint to watch. Required for price_above/price_below/whale_buy; optional for graduation; forbidden for new_mint.'),
-		target_agent: z
-			.string()
-			.uuid()
+		target_agent: agentId()
 			.optional()
 			.describe('three.ws agent UUID to watch. Required for new_mint; optional for graduation; forbidden for the mint-targeted kinds.'),
-		threshold: z
-			.number()
-			.positive()
+		threshold: threshold()
 			.optional()
 			.describe('Required for price/whale kinds: USD market cap for price_above/price_below, minimum buy size in SOL for whale_buy. Ignored for graduation/new_mint.'),
 		deliver_in_app: z.boolean().default(true).describe('Deliver as an in-app notification (default true).'),
-		webhook_url: z
-			.string()
-			.url()
-			.refine((u) => /^https:\/\//i.test(u), 'must be https')
+		webhook_url: webhookUrl()
 			.optional()
-			.describe('HTTPS endpoint to POST a signed alert event to. The response includes a generated webhook_secret for verifying the webhook-signature header.'),
-		telegram_chat: z
-			.string()
-			.regex(/^(-?\d{1,32}|@[a-zA-Z0-9_]{4,64})$/, 'numeric chat id or @username')
+			.describe('Public HTTPS endpoint to POST a signed alert event to (private, loopback and link-local hosts are rejected). The response includes a generated webhook_secret for verifying the webhook-signature header.'),
+		telegram_chat: telegramChat()
 			.optional()
 			.describe('Telegram numeric chat id (e.g. 123456789) or @username to deliver to via the platform bot.'),
-		cooldown_seconds: z
-			.number()
-			.int()
-			.min(5)
-			.max(86_400)
+		cooldown_seconds: cooldownSeconds()
 			.default(300)
 			.describe('Minimum seconds between fires for this rule (5–86400, default 300).'),
 		enabled: z.boolean().default(true).describe('Whether the rule is active (default true).'),
-		label: z.string().max(80).optional().describe('Optional human label; a default is derived from kind/target when omitted.'),
+		label: label().optional().describe('Optional human label; a default is derived from kind/target when omitted.'),
 	},
 	async handler(args) {
+		if (args.webhook_url) await assertPublicWebhookUrl(args.webhook_url);
 		const body = dropUndefined({
 			kind: args.kind,
 			target_mint: args.target_mint,

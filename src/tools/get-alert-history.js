@@ -9,6 +9,7 @@
 import { z } from 'zod';
 
 import { apiRequest } from '../lib/api.js';
+import { kind, ruleId } from '../lib/schemas.js';
 import { shapeAlert } from '../lib/shapes.js';
 
 const API_MAX = 50;
@@ -33,13 +34,10 @@ export const def = {
 			.max(API_MAX)
 			.default(20)
 			.describe('Maximum number of fired alerts to return, newest first (1–50, default 20).'),
-		rule_id: z
-			.string()
-			.uuid()
+		rule_id: ruleId()
 			.optional()
 			.describe('Only return alerts fired by this rule id (matches the rule_id in each alert payload).'),
-		kind: z
-			.enum(['graduation', 'price_above', 'price_below', 'whale_buy', 'new_mint'])
+		kind: kind()
 			.optional()
 			.describe('Only return alerts of this event kind.'),
 	},

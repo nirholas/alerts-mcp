@@ -4,9 +4,8 @@
 //
 // Wraps DELETE /api/alerts/rules/:id.
 
-import { z } from 'zod';
-
 import { apiRequest } from '../lib/api.js';
+import { ruleId } from '../lib/schemas.js';
 
 export const def = {
 	name: 'delete_alert_rule',
@@ -19,7 +18,7 @@ export const def = {
 		'not_found (so this is not idempotent). Use this when a rule is no longer wanted at all; to pause it without losing it, prefer ' +
 		'update_alert_rule with enabled:false. Returns the deleted rule id. Requires THREE_WS_SESSION.',
 	inputSchema: {
-		rule_id: z.string().uuid().describe('Id of the rule to delete (from list_alert_rules). This cannot be undone.'),
+		rule_id: ruleId().describe('Id of the rule to delete (from list_alert_rules). This cannot be undone.'),
 	},
 	async handler(args) {
 		const data = await apiRequest(`/api/alerts/rules/${encodeURIComponent(args.rule_id)}`, {
