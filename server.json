@@ -30,7 +30,7 @@
 			"environmentVariables": [
 				{
 					"name": "THREE_WS_BASE",
-					"description": "Base URL of the three.ws API that serves the alert-rules and notifications endpoints. Override only when self-hosting or targeting a preview deployment.",
+					"description": "Base URL of the three.ws API that serves the alert-rules and notifications endpoints. Must be https (http is accepted only for localhost). Override only when self-hosting or targeting a preview deployment.",
 					"format": "string",
 					"isRequired": false,
 					"default": "https://three.ws"

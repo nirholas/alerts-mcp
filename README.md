@@ -86,7 +86,9 @@ Every tool is account-scoped. Set **`THREE_WS_SESSION`** to the value of your `_
 | `whale_buy`    | `target_mint` (required)        | minimum buy size in SOL   |
 | `new_mint`     | `target_agent` (required)       | —                         |
 
-At least one delivery channel must be on: `deliver_in_app` (default true), `webhook_url` (HTTPS — a per-rule `webhook_secret` is generated for verifying the `webhook-signature` header), and/or `telegram_chat` (numeric chat id or `@username`). `cooldown_seconds` (5–86400, default 300) throttles repeat fires.
+At least one delivery channel must be on: `deliver_in_app` (default true), `webhook_url` (HTTPS — a per-rule `webhook_secret` is generated for verifying the `webhook-signature` header), and/or `telegram_chat` (numeric chat id or `@username`). `cooldown_seconds` (5–86400, default 300) throttles repeat fires. `label` is at most 80 characters with no control characters or line breaks.
+
+**Webhook URL screening.** Before a rule is sent to three.ws, `webhook_url` must be a public HTTPS endpoint. The server rejects URLs with embedded credentials, private-network hostnames (`localhost`, `*.local`, `*.internal`, cloud metadata names), IP literals in loopback, private, link-local (including `169.254.169.254`), CGNAT, multicast and reserved ranges (IPv4 embedded in IPv6 included), and hostnames whose DNS answer contains such an address. This is a client-side first filter that gives a precise error. Deliveries are made by the three.ws backend, which must enforce the same policy at send time, against the address it actually connects to, to stop DNS rebinding.
 
 > Any coin referenced in a rule is **runtime input you supply**. three.ws promotes only **$THREE** (`FeMbDoX7R1Psc4GEcvJdsbNbZA3bfztcyDCatJVJpump`).
 
@@ -139,8 +141,14 @@ At least one delivery channel must be on: `deliver_in_app` (default true), `webh
 | Variable              | Required | Default            | Notes                                                        |
 | --------------------- | -------- | ------------------ | ------------------------------------------------------------ |
 | `THREE_WS_SESSION`    | **yes**  | —                  | Your `__Host-sid` cookie value. Account credential — secret. |
-| `THREE_WS_BASE`       | no       | `https://three.ws` | Override only for self-hosting / preview deployments.        |
-| `THREE_WS_TIMEOUT_MS` | no       | `20000`            | Per-request timeout (ms).                                    |
+| `THREE_WS_BASE`       | no       | `https://three.ws` | Override only for self-hosting / preview deployments. Must be `https` (plain `http` only for `localhost` / `127.0.0.1` / `[::1]`), since the session cookie is sent to it. |
+| `THREE_WS_TIMEOUT_MS` | no       | `20000`            | Per-request timeout (ms), covering the whole response body.  |
+
+Reads (`list_alert_rules`, `get_alert_history` and the CSRF-token fetch) are retried up to 3 attempts with exponential backoff on network errors, timeouts, `429` and `502`/`503`/`504`, honouring `Retry-After`. Writes are never retried, because `create_alert_rule` is not idempotent and CSRF tokens are single-use. If a write times out, call `list_alert_rules` before trying again.
+
+### Errors
+
+A failed call returns `isError: true` with `{ ok: false, error, message, status? }`. `error` is one of `no_session`, `bad_session` (the session value contains characters a cookie cannot hold), `csrf_unavailable`, `invalid_webhook_url`, `timeout`, `network_error`, `bad_response` (a 2xx that was not JSON) or `upstream_error` (the API's own status and message).
 
 ## Programmatic use
 
@@ -159,7 +167,9 @@ for (const tool of TOOLS) {
 	console.log(`${kind} ${tool.name}`);
 }
 
-// A tool handler is a plain async function against the live API.
+// A tool handler is a plain async function against the live API. Calling it
+// directly skips the MCP server's zod validation, so parse your arguments with
+// the tool's inputSchema first (the webhook URL screen runs either way).
 const list = TOOLS.find((t) => t.name === 'list_alert_rules');
 console.log(await list.handler({}));
 
