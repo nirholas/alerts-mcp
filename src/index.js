@@ -36,6 +36,23 @@ import { def as getAlertHistory } from './tools/get-alert-history.js';
 const require = createRequire(import.meta.url);
 const { version: PKG_VERSION } = require('../package.json');
 
+const TEXT = /** @type {const} */ ('text');
+
+/**
+ * One MCP tool: metadata plus the handler the server calls with the parsed
+ * arguments. Handlers return a JSON-serializable result or throw an Error
+ * carrying `.code` (and `.status` for upstream failures).
+ *
+ * @typedef {object} ToolDef
+ * @property {string} name
+ * @property {string} title
+ * @property {string} description
+ * @property {Record<string, import('zod').ZodType>} inputSchema
+ * @property {{ readOnlyHint: boolean, destructiveHint: boolean, idempotentHint: boolean, openWorldHint: boolean }} annotations
+ * @property {(args?: any) => Promise<unknown>} handler
+ */
+
+/** @type {ToolDef[]} */
 export const TOOLS = [
 	listAlertRules,
 	createAlertRule,
@@ -77,11 +94,11 @@ export function buildServer() {
 				inputSchema: tool.inputSchema,
 				annotations: tool.annotations,
 			},
-			async (args, extra) => {
+			async (args) => {
 				try {
-					const result = await tool.handler(args, extra);
+					const result = await tool.handler(args);
 					const text = typeof result === 'string' ? result : JSON.stringify(result, null, 2);
-					return { content: [{ type: 'text', text }] };
+					return { content: [{ type: TEXT, text }] };
 				} catch (err) {
 					const payload = {
 						ok: false,
@@ -90,7 +107,7 @@ export function buildServer() {
 						...(err?.status ? { status: err.status } : {}),
 					};
 					return {
-						content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }],
+						content: [{ type: TEXT, text: JSON.stringify(payload, null, 2) }],
 						isError: true,
 					};
 				}

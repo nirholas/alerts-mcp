@@ -50,7 +50,8 @@
 		"start": "node src/index.js",
 		"test": "node --test test/*.test.mjs",
 		"inspect": "npx -y @modelcontextprotocol/inspector node src/index.js",
-		"lint": "eslint ."
+		"lint": "eslint .",
+		"typecheck": "tsc -p jsconfig.json"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.29.0",
@@ -62,7 +63,9 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.5",
+		"@types/node": "^20.19.43",
 		"eslint": "^9.39.5",
-		"globals": "^16.5.0"
+		"globals": "^16.5.0",
+		"typescript": "~6.0.3"
 	}
 }

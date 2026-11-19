@@ -26,6 +26,8 @@ npm test
 Scripts:
 - `npm run start`: `node src/index.js`
 - `npm run test`: `node --test test/*.test.mjs`
+- `npm run lint`: `eslint .`
+- `npm run typecheck`: `tsc -p jsconfig.json` (JSDoc types in `src/`)
 - `npm run inspect`: `npx -y @modelcontextprotocol/inspector node src/index.js`
 
 ## Conventions

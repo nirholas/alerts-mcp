@@ -118,9 +118,14 @@ function retryAfterMs(res) {
 	return Number.isFinite(at) ? Math.max(0, at - Date.now()) : undefined;
 }
 
-/** The single underlying HTTP client. All requests — reads, the CSRF fetch, and
- *  writes — flow through here so auth, timeout, and error normalization live in
- *  exactly one place. The timeout covers the whole exchange, body included. */
+/**
+ * The single underlying HTTP client. All requests — reads, the CSRF fetch, and
+ * writes — flow through here so auth, timeout, and error normalization live in
+ * exactly one place. The timeout covers the whole exchange, body included.
+ *
+ * @param {string} path
+ * @param {{ method?: string, query?: Record<string, unknown>, body?: unknown, auth?: boolean, csrfToken?: string }} [opts]
+ */
 async function sendRequest(path, { method = 'GET', query, body, auth = false, csrfToken } = {}) {
 	const url = new URL(`${THREE_WS_BASE}${path}`);
 	if (query) {

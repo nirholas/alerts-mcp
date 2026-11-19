@@ -18,6 +18,7 @@
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { BlockList, isIP } from 'node:net';
 
+/** @type {Array<[string, number]>} */
 const BLOCKED_V4 = [
 	['0.0.0.0', 8], // "this" network
 	['10.0.0.0', 8], // private
@@ -36,6 +37,7 @@ const BLOCKED_V4 = [
 	['240.0.0.0', 4], // reserved, broadcast
 ];
 
+/** @type {Array<[string, number]>} */
 const BLOCKED_V6 = [
 	['::', 128], // unspecified
 	['::1', 128], // loopback
