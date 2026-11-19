@@ -15,7 +15,7 @@
 // signer — the only secret is the session token.
 //
 // Run standalone:
-//   THREE_WS_SESSION=… node packages/alerts-mcp/src/index.js
+//   THREE_WS_SESSION=… node src/index.js
 //
 // Or wire into Claude Code / Cursor — see README.md.
 
@@ -106,6 +106,21 @@ async function main() {
 	const transport = new StdioServerTransport();
 	await server.connect(transport);
 	console.error(`[alerts-mcp@${PKG_VERSION}] connected over stdio with ${TOOLS.length} tools`);
+
+	// Close the transport cleanly when the client goes away or the process is
+	// asked to stop, so an in-flight response is flushed rather than cut off.
+	let closing = false;
+	const shutdown = () => {
+		if (closing) return;
+		closing = true;
+		server
+			.close()
+			.catch((err) => console.error('[alerts-mcp] error while closing:', err?.message || err))
+			.finally(() => process.exit(0));
+	};
+	process.once('SIGINT', shutdown);
+	process.once('SIGTERM', shutdown);
+	process.stdin.once('end', shutdown);
 }
 
 // Connect stdio ONLY when this file is the process entry point. Importing the
